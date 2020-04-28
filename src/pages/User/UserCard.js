@@ -1,6 +1,8 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'dva';
-import { Form, Input, Modal, Radio } from 'antd';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
+import { Input, Modal, Radio } from 'antd';
 import { md5Hash } from '../../utils/utils';
 import RoleSelect from './RoleSelect';
 
@@ -100,8 +102,8 @@ class UserCard extends PureComponent {
             })(<Input placeholder="请输入真实姓名" />)}
           </Form.Item>
           <Form.Item {...formItemLayout} label="所属角色">
-            {getFieldDecorator('roles', {
-              initialValue: formData.roles,
+            {getFieldDecorator('user_roles', {
+              initialValue: formData.user_roles,
               rules: [
                 {
                   required: true,

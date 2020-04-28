@@ -1,18 +1,26 @@
 import React from 'react';
-import { Layout, Menu, Icon, Avatar, Dropdown, Spin } from 'antd';
+import { Icon as LegacyIcon } from '@ant-design/compatible';
+import {
+  LockOutlined,
+  LogoutOutlined,
+  UserOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from '@ant-design/icons';
+import { Layout, Menu, Avatar, Dropdown, Spin } from 'antd';
 import DocumentTitle from 'react-document-title';
 import { connect } from 'dva';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import Link from 'umi/link';
+import { Link } from 'umi';
 import { ContainerQuery } from 'react-container-query';
 import classNames from 'classnames';
 import Debounce from 'lodash-decorators/debounce';
 import GlobalFooter from '@/components/GlobalFooter';
 import CopyRight from '@/components/CopyRight';
 import UpdatePasswordDialog from '@/components/UpdatePasswordDialog';
-import styles from './AdminLayout.less';
+import context from '@/utils/context';
+import './AdminLayout.less';
 import logo from '../assets/logo.svg';
-import GetGlobalContext from '@/utils/context';
 
 const { Header, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -75,10 +83,11 @@ class AdminLayout extends React.PureComponent {
     dispatch(action);
   };
 
-  onCollapse = collapsed => {
+  onCollapse = () => {
+    const { collapsed } = this.props;
     this.dispatch({
       type: 'global/changeLayoutCollapsed',
-      payload: collapsed,
+      payload: !collapsed,
     });
   };
 
@@ -159,17 +168,17 @@ class AdminLayout extends React.PureComponent {
     }
 
     return menusData.map(item => {
-      if (!item.name || item.hidden !== 0) {
+      if (!item.name || item.show_status !== 1) {
         return null;
       }
 
-      if (item.children && item.children.some(child => child.name && child.hidden === 0)) {
+      if (item.children && item.children.some(child => child.name && child.show_status === 1)) {
         return (
           <SubMenu
             title={
               item.icon ? (
                 <span>
-                  <Icon type={item.icon} />
+                  <LegacyIcon type={item.icon} />
                   <span>{item.name}</span>
                 </span>
               ) : (
@@ -184,7 +193,7 @@ class AdminLayout extends React.PureComponent {
       }
 
       const { router } = item;
-      const icon = item.icon && <Icon type={item.icon} />;
+      const icon = item.icon && <LegacyIcon type={item.icon} />;
       const {
         location: { pathname },
       } = this.props;
@@ -236,17 +245,16 @@ class AdminLayout extends React.PureComponent {
     } = this.props;
 
     const { updatePwdVisible } = this.state;
-    const GlobalContext = GetGlobalContext();
 
     const menu = (
-      <Menu className={styles.menu} selectedKeys={[]} onClick={this.onMenuClick}>
+      <Menu className="menu" selectedKeys={[]} onClick={this.onMenuClick}>
         <Menu.Item key="updatepwd">
-          <Icon type="lock" />
+          <LockOutlined />
           修改密码
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item key="logout">
-          <Icon type="logout" />
+          <LogoutOutlined />
           退出登录
         </Menu.Item>
       </Menu>
@@ -254,6 +262,7 @@ class AdminLayout extends React.PureComponent {
 
     // Don't show popup menu when it is been collapsed
     const menuProps = collapsed ? {} : { openKeys };
+    const siderWidth = 256;
 
     const layout = (
       <Layout>
@@ -263,10 +272,10 @@ class AdminLayout extends React.PureComponent {
           collapsed={collapsed}
           breakpoint="lg"
           onCollapse={this.onCollapse}
-          width={256}
-          className={styles.sider}
+          width={siderWidth}
+          className="sider"
         >
-          <div className={styles.logo}>
+          <div className="logo">
             <Link to="/">
               <img src={logo} alt="logo" />
               <h1>{title}</h1>
@@ -284,17 +293,21 @@ class AdminLayout extends React.PureComponent {
           </Menu>
         </Sider>
         <Layout>
-          <Header className={styles.header}>
-            <Icon
-              className={styles.trigger}
-              type={collapsed ? 'menu-unfold' : 'menu-fold'}
-              onClick={this.onToggleClick}
-            />
-            <div className={styles.right}>
+          <Header
+            className={classNames('header')}
+            style={{
+              paddingLeft: 12,
+              paddingRight: 12,
+            }}
+          >
+            <div className={classNames('foldout')} onClick={() => this.onCollapse()}>
+              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            </div>
+            <div className={classNames('right')}>
               {user.user_name ? (
                 <Dropdown overlay={menu}>
-                  <span className={`${styles.action} ${styles.account}`}>
-                    <Avatar size="small" className={styles.avatar} icon="user" />
+                  <span className={classNames(['action', 'account'])}>
+                    <Avatar size="small" className={classNames('avatar')} icon={<UserOutlined />} />
                     {user.real_name !== ''
                       ? `${user.user_name}(${user.real_name})`
                       : user.user_name}
@@ -305,9 +318,11 @@ class AdminLayout extends React.PureComponent {
               )}
             </div>
           </Header>
-          <Content style={{ margin: '24px 24px 0', height: '100%' }}>
-            <div style={{ minHeight: 'calc(100vh - 260px)' }}>
-              <GlobalContext.Provider value={global}>{children}</GlobalContext.Provider>
+          <Content className={classNames('content')}>
+            <div style={{ minHeight: 'calc(100vh - 150px)' }}>
+              <context.GlobalContext.Provider value={global}>
+                {children}
+              </context.GlobalContext.Provider>
             </div>
             <GlobalFooter copyright={<CopyRight title={copyRight} />} />
           </Content>

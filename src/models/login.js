@@ -1,9 +1,7 @@
-import { routerRedux } from 'dva/router';
-import { stringify, parse } from 'qs';
-import store from '@/utils/store';
+import { history } from 'umi';
+import { parse } from 'qs';
+import { setToken, logout } from '@/utils/request';
 import * as loginService from '@/services/login';
-
-let isLogout = false;
 
 export default {
   namespace: 'login',
@@ -43,8 +41,13 @@ export default {
         payload: true,
       });
       const response = yield call(loginService.login, payload);
-      if (response.error) {
-        const { message } = response.error;
+      if (response.data && response.data.error) {
+        const {
+          data: {
+            error: { message },
+          },
+          status,
+        } = response;
         yield [
           put({
             type: 'saveTip',
@@ -52,53 +55,50 @@ export default {
           }),
           put({
             type: 'saveStatus',
-            payload: response.status >= 500 ? 'ERROR' : 'FAIL',
+            payload: status >= 500 ? 'ERROR' : 'FAIL',
+          }),
+          put({
+            type: 'changeSubmitting',
+            payload: false,
+          }),
+          put({
+            type: 'loadCaptcha',
           }),
         ];
-        yield put({
-          type: 'changeSubmitting',
-          payload: false,
-        });
-        yield put({
-          type: 'loadCaptcha',
-        });
         return;
       }
 
       // 保存访问令牌
-      store.setAccessToken(response);
-      yield put({
-        type: 'changeSubmitting',
-        payload: false,
-      });
+      setToken(response);
 
-      isLogout = false;
+      yield [
+        put({
+          type: 'saveTip',
+          payload: '',
+        }),
+        put({
+          type: 'saveStatus',
+          payload: '',
+        }),
+        put({
+          type: 'changeSubmitting',
+          payload: false,
+        }),
+      ];
+
       const params = parse(window.location.href.split('?')[1]);
       const { redirect } = params;
       if (redirect) {
         window.location.href = redirect;
         return;
       }
-      yield put(routerRedux.replace('/'));
+      history.replace('/');
     },
-    *logout(_, { put, call }) {
-      if (isLogout) {
-        return;
-      }
-      isLogout = true;
-
+    *logout(_, { call }) {
       const response = yield call(loginService.logout);
       if (response.status === 'OK') {
-        yield put(
-          routerRedux.push({
-            pathname: '/user/login',
-            search: stringify({
-              redirect: window.location.href,
-            }),
-          })
-        );
+        logout();
       }
-      store.clearAccessToken();
     },
   },
 

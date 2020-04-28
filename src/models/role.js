@@ -96,7 +96,25 @@ export default {
       }
     },
     *fetchForm({ payload }, { call, put }) {
-      const response = yield call(roleService.get, payload);
+      const response = yield call(roleService.get, payload.record_id);
+
+      const { role_menus: roleMenus } = response;
+      if (roleMenus) {
+        const mRoleMenus = {};
+        const nRoleMenus = [];
+        roleMenus.forEach(item => {
+          if (mRoleMenus[item.menu_id]) {
+            mRoleMenus[item.menu_id] = [...mRoleMenus[item.menu_id], item.action_id];
+          } else {
+            mRoleMenus[item.menu_id] = [item.action_id];
+          }
+        });
+        Object.keys(mRoleMenus).forEach(key => {
+          nRoleMenus.push({ menu_id: key, actions: mRoleMenus[key] });
+        });
+        response.role_menus = nRoleMenus;
+      }
+
       yield [
         put({
           type: 'saveFormData',
@@ -113,12 +131,18 @@ export default {
       const params = { ...payload };
       const formType = yield select(state => state.role.formType);
 
-      let response;
+      let success = false;
       if (formType === 'E') {
-        params.record_id = yield select(state => state.role.formID);
-        response = yield call(roleService.update, params);
+        const id = yield select(state => state.role.formID);
+        const response = yield call(roleService.update, id, params);
+        if (response.status === 'OK') {
+          success = true;
+        }
       } else {
-        response = yield call(roleService.create, params);
+        const response = yield call(roleService.create, params);
+        if (response.record_id && response.record_id !== '') {
+          success = true;
+        }
       }
 
       yield put({
@@ -126,7 +150,7 @@ export default {
         payload: false,
       });
 
-      if (response.record_id && response.record_id !== '') {
+      if (success) {
         message.success('保存成功');
         yield put({
           type: 'changeFormVisible',
@@ -138,7 +162,7 @@ export default {
       }
     },
     *del({ payload }, { call, put }) {
-      const response = yield call(roleService.del, payload);
+      const response = yield call(roleService.del, payload.record_id);
       if (response.status === 'OK') {
         message.success('删除成功');
         yield put({ type: 'fetch' });
@@ -150,6 +174,37 @@ export default {
         type: 'saveSelectData',
         payload: response.list || [],
       });
+    },
+    *changeStatus({ payload }, { call, put, select }) {
+      let response;
+      if (payload.status === 1) {
+        response = yield call(roleService.enable, payload.record_id);
+      } else {
+        response = yield call(roleService.disable, payload.record_id);
+      }
+
+      if (response.status === 'OK') {
+        let msg = '启用成功';
+        if (payload.status === 2) {
+          msg = '停用成功';
+        }
+        message.success(msg);
+        const data = yield select(state => state.role.data);
+        const newData = { list: [], pagination: data.pagination };
+
+        for (let i = 0; i < data.list.length; i += 1) {
+          const item = data.list[i];
+          if (item.record_id === payload.record_id) {
+            item.status = payload.status;
+          }
+          newData.list.push(item);
+        }
+
+        yield put({
+          type: 'saveData',
+          payload: newData,
+        });
+      }
     },
   },
   reducers: {

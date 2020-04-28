@@ -1,7 +1,9 @@
 import React, { PureComponent } from 'react';
-import { Form, Input, Modal, message } from 'antd';
-import { md5Hash } from '../../utils/utils';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
+import { Input, Modal, message } from 'antd';
 import { updatePwd } from '@/services/login';
+import { md5Hash } from '../../utils/utils';
 
 @Form.create()
 class UpdatePasswordDialog extends PureComponent {
@@ -99,15 +101,15 @@ class UpdatePasswordDialog extends PureComponent {
               ],
             })(<Input type="password" placeholder="请输入新密码" />)}
           </Form.Item>
-          <Form.Item {...formItemLayout} label="确认旧密码">
+          <Form.Item {...formItemLayout} label="确认新密码">
             {getFieldDecorator('confirm_new_password', {
               rules: [
                 {
                   required: true,
-                  message: '请输入确认旧密码',
+                  message: '请输入确认新密码',
                 },
               ],
-            })(<Input type="password" placeholder="请输入确认旧密码" />)}
+            })(<Input type="password" placeholder="请输入确认新密码" />)}
           </Form.Item>
         </Form>
       </Modal>
